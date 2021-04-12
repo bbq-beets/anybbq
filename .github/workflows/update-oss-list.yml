@@ -1,0 +1,32 @@
+name: Update engaged OSS list
+
+on:
+  workflow_dispatch:
+  #schedule:
+  #  - cron: "19 11 * * *"
+
+jobs:
+  update-oss-list:
+    name: Update list
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Download the engaged OSS list
+        run: |
+          HTTP_CODE=$(curl -I -s -o ./common/engaged-oss-list.txt -w "%{http_code}" https://raw.githubusercontent.com/github/engaged-oss/main/output.txt?token={{ secrets.GITHUB_TOKEN }})
+          if [ $HTTP_CODE != "200" ]; then
+            echo "Error downloading engaged OSS list."
+            exit 1
+          fi
+      # TODO: Maybe manipulate the list to only contain what we need. Just the NWOs, in alphabetical order to make changes easier to see and less frequent.
+
+      - name: Commit & push the list to the default branch
+        run: |
+          git config --global user.email "actions@github.com"
+          git config --global user.name "Actions"
+          git diff-index HEAD
+          git add ./common/engaged-oss-list.txt
+          git commit -m 'Automatic update of engaged OSS list'
+          git push
